@@ -1,0 +1,501 @@
+
+<style>
+  * { box-sizing: border-box; }
+  .wrap { padding: 1rem 0; font-size: 14px; color: var(--color-text-primary); }
+  .section { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  label.field-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  input, select { font-size: 14px; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .interval-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .interval-table thead th { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; padding: 0 8px 8px; text-align: left; }
+  .interval-table thead th:last-child { text-align: right; }
+  .interval-table tbody tr { border-top: 0.5px solid var(--color-border-tertiary); }
+  .interval-table tbody td { padding: 7px 8px; vertical-align: middle; }
+  .interval-table tbody td:first-child { font-weight: 500; }
+  .interval-table tbody td:nth-child(2) { color: var(--color-text-secondary); font-size: 12px; }
+  .interval-table tbody td:last-child { text-align: right; }
+  .interval-input-wrap { display: inline-flex; align-items: center; gap: 4px; }
+  .interval-input-wrap input[type=number] { width: 72px; text-align: right; font-size: 13px; }
+  .interval-input-wrap span { font-size: 12px; color: var(--color-text-secondary); }
+  .sensor-tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); margin: 1px 2px; }
+  .oid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 8px; }
+  .oid-item { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding: 6px 8px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); user-select: none; }
+  .oid-item:hover { border-color: var(--color-border-secondary); }
+  .oid-item input[type=checkbox] { accent-color: var(--color-text-info); width: 14px; height: 14px; flex-shrink: 0; }
+  .port-ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; color: var(--color-text-secondary); }
+  .port-ctrl input[type=number] { width: 60px; }
+  .generate-btn { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; background: var(--color-background-info); color: var(--color-text-info); border: 0.5px solid var(--color-border-info); border-radius: var(--border-radius-md); cursor: pointer; transition: opacity .15s; }
+  .generate-btn:hover { opacity: 0.85; }
+  .yaml-area { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px; white-space: pre; overflow-x: auto; max-height: 420px; overflow-y: auto; color: var(--color-text-primary); line-height: 1.6; }
+  .copy-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .copy-btn { font-size: 12px; padding: 5px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+  .copy-btn:hover { background: var(--color-background-secondary); }
+  .tab-row { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 4px 12px; border-radius: 99px; border: 0.5px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+  .tab.active { background: var(--color-background-info); color: var(--color-text-info); border-color: var(--color-border-info); }
+  .info-box { font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-secondary); border-left: 2px solid var(--color-border-info); padding: 8px 12px; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; margin-bottom: 12px; line-height: 1.5; }
+  .warn-box { font-size: 12px; color: var(--color-text-warning); background: var(--color-background-warning); border-left: 2px solid var(--color-border-warning); padding: 8px 12px; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; margin-bottom: 12px; line-height: 1.5; }
+  #output-section { display: none; }
+  #sensor-section { display: none; }
+  #interval-section { display: none; }
+</style>
+
+<div class="wrap">
+  <div class="section">
+    <div class="section-title">Device configuration</div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Device type</label>
+        <select id="device-type" onchange="onDeviceChange()">
+          <option value="">— select device —</option>
+          <option value="udm_pro">UDM Pro</option>
+          <option value="usw_agg">USW Aggregation</option>
+          <option value="usw_pro_8_poe">USW Pro 8 PoE</option>
+          <option value="ap_ac_pro">AP AC Pro</option>
+          <option value="u6_lr">U6 LR</option>
+          <option value="uk_ultra">UK Ultra</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Device IP / hostname</label>
+        <input type="text" id="host" placeholder="192.168.1.1" value="192.168.1.1" />
+      </div>
+    </div>
+    <div class="field-row three">
+      <div class="field">
+        <label class="field-label">SNMP username</label>
+        <input type="text" id="username" placeholder="snmp_user" />
+      </div>
+      <div class="field">
+        <label class="field-label">Auth key</label>
+        <input type="password" id="auth_key" placeholder="authpassword" />
+      </div>
+      <div class="field">
+        <label class="field-label">Priv key</label>
+        <input type="password" id="priv_key" placeholder="privpassword" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Auth protocol</label>
+        <select id="auth_protocol">
+          <option value="hmac-sha">hmac-sha (SHA-1)</option>
+          <option value="hmac-sha2-256">hmac-sha2-256 (SHA-256)</option>
+          <option value="hmac-md5">hmac-md5 (MD5)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Priv protocol</label>
+        <select id="priv_protocol">
+          <option value="aes-cfb-128">aes-cfb-128</option>
+          <option value="des">des</option>
+          <option value="aes-cfb-256">aes-cfb-256</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Device label (used in sensor names)</label>
+        <input type="text" id="device-label" placeholder="e.g. USW GARAJ" />
+      </div>
+      <div class="field">
+        <label class="field-label">Entity ID prefix (lowercase, underscores)</label>
+        <input type="text" id="entity-prefix" placeholder="e.g. usw_pro_8_poe_garage" />
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="interval-section">
+    <div class="section-title">Scan intervals</div>
+    <div class="info-box">Each sensor uses the interval for its group. All OIDs are verified from live snmpwalk data.</div>
+    <div id="device-notes"></div>
+    <table class="interval-table">
+      <thead><tr><th>Group</th><th>Sensors included</th><th>Interval</th></tr></thead>
+      <tbody id="interval-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="sensor-section">
+    <div class="section-title">Sensor selection</div>
+    <div id="sensor-tabs" class="tab-row"></div>
+    <div id="sensor-panel"></div>
+  </div>
+
+  <button class="generate-btn" id="gen-btn" style="display:none" onclick="generate()">Generate YAML</button>
+
+  <div class="section" id="output-section" style="margin-top:1rem">
+    <div class="section-title">Generated YAML — paste into configuration.yaml under <code style="font-size:11px">sensor:</code></div>
+    <div class="info-box">Add below under a top-level <code>sensor:</code> key. Sensors with <code>value_template</code> use expanded block form.</div>
+    <div class="yaml-area" id="yaml-out"></div>
+    <div class="copy-row"><button class="copy-btn" onclick="copyYaml()">Copy to clipboard</button></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DEVICE PROFILES — port counts from live snmpwalk ifNumber
+// ============================================================
+const DEVICES = {
+  udm_pro:       { label: "UDM PRO",   ports: 0,  hasPoE: false, hasWifi: false, hasUbntWifi: false, hasUbntHW: false, hasUdmHW: true,  hasDisk: true  },
+  usw_agg:       { label: "USW AGG",   ports: 8,  hasPoE: false, hasWifi: false, hasUbntWifi: false, hasUbntHW: false, hasUdmHW: false, hasDisk: false },
+  usw_pro_8_poe: { label: "USW PRO",   ports: 10, hasPoE: false, hasWifi: false, hasUbntWifi: false, hasUbntHW: false, hasUdmHW: false, hasDisk: false },
+  ap_ac_pro:     { label: "AP AC PRO", ports: 0,  hasPoE: false, hasWifi: true,  hasUbntWifi: true,  hasUbntHW: true,  hasUdmHW: false, hasDisk: false },
+  u6_lr:         { label: "U6 LR",     ports: 0,  hasPoE: false, hasWifi: true,  hasUbntWifi: true,  hasUbntHW: true,  hasUdmHW: false, hasDisk: false },
+  uk_ultra:      { label: "UK ULTRA",  ports: 5,  hasPoE: false, hasWifi: true,  hasUbntWifi: true,  hasUbntHW: true,  hasUdmHW: false, hasDisk: false },
+};
+
+// Device-specific notes to show after selection
+const DEVICE_NOTES = {
+  usw_pro_8_poe: '<div class="warn-box">PoE metrics are <strong>not exposed via SNMP</strong> on this device. Verified by full snmpwalk — no PoE OIDs present in the enterprise subtree.</div>',
+  usw_agg:       '<div class="info-box">All 8 ports are SFP+. Port names (ifAlias) reflect your UniFi-configured descriptions.</div>',
+  udm_pro:       '<div class="info-box">The UDM Pro exposes 4 real temp sensors and 1 fan sensor via the lm-sensors MIB (1.3.6.1.4.1.2021.13.16). ifAlias fields are empty on this device — port descriptions come from ifDescr instead.</div>',
+  uk_ultra:      '<div class="warn-box">PoE metrics are <strong>not exposed via SNMP</strong> on this device. Verified by full snmpwalk.</div>',
+};
+
+// ============================================================
+// SENSOR GROUPS — OIDs verified from live snmpwalk data
+// ============================================================
+const SENSOR_GROUPS = {
+  system_slow: {
+    label: "System — slow", defaultInterval: 3600,
+    sensors: [
+      { key: "sys_name",   name: "System Name",    oid: "1.3.6.1.2.1.1.5.0" },
+      { key: "sys_descr",  name: "System Descr",   oid: "1.3.6.1.2.1.1.1.0" },
+      { key: "uptime",     name: "Uptime",          oid: "1.3.6.1.2.1.1.3.0", template: "uptime" },
+    ]
+  },
+  system_fast: {
+    label: "System — fast", defaultInterval: 30,
+    sensors: [
+      { key: "load_1m",    name: "Load 1m",         oid: "1.3.6.1.4.1.2021.10.1.3.1" },
+      { key: "load_5m",    name: "Load 5m",          oid: "1.3.6.1.4.1.2021.10.1.3.2" },
+      { key: "load_15m",   name: "Load 15m",         oid: "1.3.6.1.4.1.2021.10.1.3.3" },
+      { key: "cpu_user",   name: "CPU User %",       oid: "1.3.6.1.4.1.2021.11.9.0",  unit: "%" },
+      { key: "cpu_sys",    name: "CPU System %",     oid: "1.3.6.1.4.1.2021.11.10.0", unit: "%" },
+      { key: "cpu_idle",   name: "CPU Idle %",       oid: "1.3.6.1.4.1.2021.11.11.0", unit: "%" },
+    ]
+  },
+  memory: {
+    label: "Memory", defaultInterval: 60,
+    sensors: [
+      { key: "mem_total",  name: "Mem Total",        oid: "1.3.6.1.4.1.2021.4.5.0",  unit: "kB" },
+      { key: "mem_free",   name: "Mem Free",         oid: "1.3.6.1.4.1.2021.4.11.0", unit: "kB" },
+      { key: "mem_avail",  name: "Mem Available",    oid: "1.3.6.1.4.1.2021.4.6.0",  unit: "kB" },
+      { key: "mem_cached", name: "Mem Cached",       oid: "1.3.6.1.4.1.2021.4.15.0", unit: "kB" },
+    ]
+  },
+  // UDM Pro: real temperature sensors via lm-sensors MIB (1.3.6.1.4.1.2021.13.16)
+  // Indices confirmed from live walk: 1=temp-CPU(41°C), 2=temp-Local(39.5°C), 3=temp-PHY(39°C), 4=temp-cpu(52°C)
+  // Values are millidegrees (41000 = 41.0°C). template divides by 1000.
+  udm_temp: {
+    label: "UDM temperatures", defaultInterval: 30,
+    sensors: [
+      { key: "temp_cpu",   name: "Temp CPU",         oid: "1.3.6.1.4.1.2021.13.16.2.1.3.1", unit: "°C", template: "millideg" },
+      { key: "temp_local", name: "Temp Local",       oid: "1.3.6.1.4.1.2021.13.16.2.1.3.2", unit: "°C", template: "millideg" },
+      { key: "temp_phy",   name: "Temp PHY",         oid: "1.3.6.1.4.1.2021.13.16.2.1.3.3", unit: "°C", template: "millideg" },
+      { key: "temp_cpu2",  name: "Temp CPU2",        oid: "1.3.6.1.4.1.2021.13.16.2.1.3.4", unit: "°C", template: "millideg" },
+    ]
+  },
+  // UDM Pro: fan sensor. Index 2 = fan-HDD (999 RPM confirmed). Others were 0.
+  udm_fan: {
+    label: "UDM fans", defaultInterval: 30,
+    sensors: [
+      { key: "fan_hdd",    name: "Fan HDD RPM",      oid: "1.3.6.1.4.1.2021.13.16.3.1.3.2", unit: "RPM" },
+    ]
+  },
+  // UDM Pro: voltage sensors. Index 1=in1(896mV), index 2=+3.3V(3265mV). template divides by 1000.
+  udm_voltage: {
+    label: "UDM voltages", defaultInterval: 60,
+    sensors: [
+      { key: "volt_in1",   name: "Voltage in1",      oid: "1.3.6.1.4.1.2021.13.16.4.1.3.1", unit: "V", template: "millivolt" },
+      { key: "volt_3v3",   name: "Voltage +3.3V",    oid: "1.3.6.1.4.1.2021.13.16.4.1.3.2", unit: "V", template: "millivolt" },
+    ]
+  },
+  ports: {
+    label: "Port info", defaultInterval: 60,
+    sensors: [
+      // ifAlias (.31.1.1.1.18.*) = user-configured name in UniFi. Use this, not ifDescr.
+      { key: "port_name",      name: "Port Name",      oid_base: "1.3.6.1.2.1.31.1.1.1.18", perPort: true },
+      // ifOperStatus: 1=up, 2=down
+      { key: "port_status",    name: "Port Status",    oid_base: "1.3.6.1.2.1.2.2.1.8",     perPort: true, template: "port_status" },
+      // ifHighSpeed in Mbps — correct OID. ifSpeed (.2.2.1.5) overflows at 4G, useless for SFP+.
+      { key: "port_speed",     name: "Port Speed Mbps",oid_base: "1.3.6.1.2.1.31.1.1.1.15", perPort: true, unit: "Mbit/s" },
+      // ifLastChange — when port state last changed
+      { key: "port_lastchg",   name: "Port Last Change",oid_base: "1.3.6.1.2.1.2.2.1.9",   perPort: true, template: "uptime" },
+    ]
+  },
+  traffic: {
+    label: "Traffic counters", defaultInterval: 60,
+    sensors: [
+      // Use 64-bit HC counters — ifInOctets/ifOutOctets (32-bit) wrap on busy gigabit ports.
+      // Confirmed: port 1 had already wrapped its 32-bit counter in the live walk.
+      { key: "if_hc_in",    name: "HC In Octets",     oid_base: "1.3.6.1.2.1.31.1.1.1.6",  unit: "B",  perPort: true },
+      { key: "if_hc_out",   name: "HC Out Octets",    oid_base: "1.3.6.1.2.1.31.1.1.1.10", unit: "B",  perPort: true },
+      { key: "if_in_err",   name: "In Errors",        oid_base: "1.3.6.1.2.1.2.2.1.14",               perPort: true },
+      { key: "if_out_err",  name: "Out Errors",       oid_base: "1.3.6.1.2.1.2.2.1.20",               perPort: true },
+      { key: "if_in_disc",  name: "In Discards",      oid_base: "1.3.6.1.2.1.2.2.1.13",               perPort: true },
+      { key: "if_out_disc", name: "Out Discards",     oid_base: "1.3.6.1.2.1.2.2.1.19",               perPort: true },
+      { key: "if_unkn",     name: "In Unknown Proto", oid_base: "1.3.6.1.2.1.2.2.1.12",               perPort: true },
+    ]
+  },
+  // Ubiquiti radio table (1.3.6.1.4.1.41112.1.6.1.1)
+  // Index 1 = 2.4 GHz radio (wifi0/ra0), index 2 = 5 GHz radio (wifi1/rai0)
+  // Confirmed present on: AP AC Pro, U6 LR, UK Ultra
+  // NOTE: temperature OID .41112.1.6.3.2.0 is present but always 0 on all 3 devices — omitted.
+  wifi_radio: {
+    label: "Wi-Fi radios", defaultInterval: 30,
+    sensors: [
+      { key: "radio_ch_2g",    name: "Channel 2.4 GHz",    oid: "1.3.6.1.4.1.41112.1.6.1.1.1.6.1" },
+      { key: "radio_ch_5g",    name: "Channel 5 GHz",      oid: "1.3.6.1.4.1.41112.1.6.1.1.1.6.2" },
+      { key: "radio_sta_2g",   name: "Stations 2.4 GHz",   oid: "1.3.6.1.4.1.41112.1.6.1.1.1.8.1" },
+      { key: "radio_sta_5g",   name: "Stations 5 GHz",     oid: "1.3.6.1.4.1.41112.1.6.1.1.1.8.2" },
+      { key: "radio_txp_2g",   name: "TX Power 2.4 GHz",   oid: "1.3.6.1.4.1.41112.1.6.1.1.1.7.1", unit: "dBm" },
+      { key: "radio_txp_5g",   name: "TX Power 5 GHz",     oid: "1.3.6.1.4.1.41112.1.6.1.1.1.7.2", unit: "dBm" },
+      { key: "radio_noise_2g", name: "Noise Floor 2.4 GHz",oid: "1.3.6.1.4.1.41112.1.6.1.1.1.9.1", unit: "dBm" },
+      { key: "radio_noise_5g", name: "Noise Floor 5 GHz",  oid: "1.3.6.1.4.1.41112.1.6.1.1.1.9.2", unit: "dBm" },
+    ]
+  },
+  // VAP table (1.3.6.1.4.1.41112.1.6.1.2)
+  // VAPs 1,2 = 2.4 GHz SSIDs; VAPs 3,4 = 5 GHz SSIDs (confirmed on all 3 devices)
+  // .8 = client count, .10 = TX bytes, .15 = RX bytes, .6 = SSID name
+  wifi_vap: {
+    label: "Wi-Fi VAPs", defaultInterval: 30,
+    sensors: [
+      { key: "vap1_clients", name: "VAP1 Clients",   oid: "1.3.6.1.4.1.41112.1.6.1.2.1.8.1" },
+      { key: "vap2_clients", name: "VAP2 Clients",   oid: "1.3.6.1.4.1.41112.1.6.1.2.1.8.2" },
+      { key: "vap3_clients", name: "VAP3 Clients",   oid: "1.3.6.1.4.1.41112.1.6.1.2.1.8.3" },
+      { key: "vap4_clients", name: "VAP4 Clients",   oid: "1.3.6.1.4.1.41112.1.6.1.2.1.8.4" },
+      { key: "vap1_tx",      name: "VAP1 TX Bytes",  oid: "1.3.6.1.4.1.41112.1.6.1.2.1.10.1", unit: "B" },
+      { key: "vap3_tx",      name: "VAP3 TX Bytes",  oid: "1.3.6.1.4.1.41112.1.6.1.2.1.10.3", unit: "B" },
+      { key: "vap1_rx",      name: "VAP1 RX Bytes",  oid: "1.3.6.1.4.1.41112.1.6.1.2.1.15.1", unit: "B" },
+      { key: "vap3_rx",      name: "VAP3 RX Bytes",  oid: "1.3.6.1.4.1.41112.1.6.1.2.1.15.3", unit: "B" },
+      { key: "vap1_ssid",    name: "VAP1 SSID",      oid: "1.3.6.1.4.1.41112.1.6.1.2.1.6.1" },
+      { key: "vap3_ssid",    name: "VAP3 SSID",      oid: "1.3.6.1.4.1.41112.1.6.1.2.1.6.3" },
+    ]
+  },
+  // Ubiquiti device info (model, firmware) — present on APs and UK Ultra
+  ubnt_info: {
+    label: "Ubnt device info", defaultInterval: 3600,
+    sensors: [
+      { key: "ubnt_model",    name: "Model",          oid: "1.3.6.1.4.1.41112.1.6.3.3.0" },
+      { key: "ubnt_firmware", name: "Firmware",       oid: "1.3.6.1.4.1.41112.1.6.3.6.0" },
+    ]
+  },
+};
+
+// Sensors requiring expanded block form (value_template)
+const EXPANDED_TEMPLATES = {
+  uptime:      [
+    `    value_template: >-`,
+    `      {%- set time = value | int -%}`,
+    `      {%- set minutes = (time / 100 / 60) | int -%}`,
+    `      {%- set hours = (minutes / 60) | int -%}`,
+    `      {%- set days = (hours / 24) | int -%}`,
+    `      {{- days }}d {{ hours % 24 }}h {{ minutes % 60 }}m`,
+  ],
+  port_status: [`    value_template: "{{ 'up' if value | int == 1 else 'down' }}"`],
+  millideg:    [`    value_template: "{{ (value | float / 1000) | round(1) }}"`],
+  millivolt:   [`    value_template: "{{ (value | float / 1000) | round(3) }}"`],
+};
+
+const groupIntervals = {};
+let selectedSensors = new Set();
+let activeTab = '';
+
+function availableGroups(devKey) {
+  const dev = DEVICES[devKey];
+  const g = ['system_slow', 'system_fast', 'memory'];
+  if (dev.hasUdmHW)  { g.push('udm_temp'); g.push('udm_fan'); g.push('udm_voltage'); }
+  if (dev.ports > 0) { g.push('ports'); g.push('traffic'); }
+  if (dev.hasUbntWifi) { g.push('wifi_radio'); g.push('wifi_vap'); }
+  if (dev.hasUbntHW)   g.push('ubnt_info');
+  return g;
+}
+
+function onDeviceChange() {
+  const key = document.getElementById('device-type').value;
+  if (!key) {
+    ['sensor-section','interval-section'].forEach(id => document.getElementById(id).style.display='none');
+    document.getElementById('gen-btn').style.display = 'none';
+    return;
+  }
+  const dev = DEVICES[key];
+  const lbl = document.getElementById('device-label');
+  const pfx = document.getElementById('entity-prefix');
+  if (!lbl.value) lbl.value = dev.label;
+  if (!pfx.value) pfx.value = key;
+
+  const groups = availableGroups(key);
+
+  // Device notes
+  const notesEl = document.getElementById('device-notes');
+  notesEl.innerHTML = DEVICE_NOTES[key] || '';
+
+  // Build interval table
+  const tbody = document.getElementById('interval-tbody');
+  tbody.innerHTML = '';
+  groups.forEach(gk => {
+    const g = SENSOR_GROUPS[gk];
+    if (!groupIntervals[gk]) groupIntervals[gk] = g.defaultInterval;
+    const tags = g.sensors.map(s => `<span class="sensor-tag">${s.name}</span>`).join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${g.label}</td><td>${tags}</td><td>
+      <div class="interval-input-wrap">
+        <input type="number" id="interval_${gk}" min="1" max="86400" value="${groupIntervals[gk]}"
+          onchange="groupIntervals['${gk}']=Math.max(1,parseInt(this.value)||1);this.value=groupIntervals['${gk}']">
+        <span>s</span>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+
+  selectedSensors = new Set(groups.flatMap(gk => SENSOR_GROUPS[gk].sensors.map(s => s.key)));
+  buildSensorTabs(key, groups);
+  document.getElementById('interval-section').style.display = 'block';
+  document.getElementById('sensor-section').style.display = 'block';
+  document.getElementById('gen-btn').style.display = 'block';
+}
+
+function buildSensorTabs(devKey, groups) {
+  const tabRow = document.getElementById('sensor-tabs');
+  tabRow.innerHTML = '';
+  groups.forEach((gk, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (i === 0 ? ' active' : '');
+    b.textContent = SENSOR_GROUPS[gk].label;
+    b.onclick = () => {
+      activeTab = gk;
+      renderSensorPanel(devKey, gk);
+      tabRow.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    };
+    tabRow.appendChild(b);
+  });
+  activeTab = groups[0];
+  renderSensorPanel(devKey, groups[0]);
+}
+
+function renderSensorPanel(devKey, gk) {
+  const dev = DEVICES[devKey];
+  const group = SENSOR_GROUPS[gk];
+  const panel = document.getElementById('sensor-panel');
+  panel.innerHTML = '';
+  if (group.sensors.some(s => s.perPort) && dev.ports > 0) {
+    const ctrl = document.createElement('div');
+    ctrl.className = 'port-ctrl';
+    ctrl.innerHTML = `<span>Port count:</span> <input type="number" id="port-count" min="1" max="48" value="${dev.ports}" style="width:60px">`;
+    panel.appendChild(ctrl);
+  }
+  const grid = document.createElement('div');
+  grid.className = 'oid-grid';
+  group.sensors.forEach(s => {
+    const item = document.createElement('label');
+    item.className = 'oid-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = selectedSensors.has(s.key);
+    cb.onchange = () => cb.checked ? selectedSensors.add(s.key) : selectedSensors.delete(s.key);
+    if (cb.checked) selectedSensors.add(s.key);
+    item.appendChild(cb);
+    item.appendChild(document.createTextNode(s.name));
+    grid.appendChild(item);
+  });
+  panel.appendChild(grid);
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function sensorLines(fields, templateKey) {
+  if (!templateKey) {
+    const parts = Object.entries(fields).map(([k, v]) => {
+      const needsQuotes = typeof v === 'string' && /[.\s:\/]/.test(v);
+      return `${k}: ${needsQuotes ? '"' + v + '"' : v}`;
+    });
+    return [`  - { ${parts.join(', ')} }`];
+  } else {
+    const lines = ['  - platform: snmp'];
+    Object.entries(fields).forEach(([k, v]) => {
+      const needsQuotes = typeof v === 'string' && /[.\s:\/]/.test(v);
+      lines.push(`    ${k}: ${needsQuotes ? '"' + v + '"' : v}`);
+    });
+    EXPANDED_TEMPLATES[templateKey].forEach(l => lines.push(l));
+    return lines;
+  }
+}
+
+function generate() {
+  const devKey = document.getElementById('device-type').value;
+  if (!devKey) { alert('Please select a device type.'); return; }
+
+  const host          = document.getElementById('host').value.trim() || '192.168.1.1';
+  const username      = document.getElementById('username').value.trim() || 'snmp_user';
+  const auth_key      = document.getElementById('auth_key').value.trim() || 'YOUR_AUTH_KEY';
+  const priv_key      = document.getElementById('priv_key').value.trim() || 'YOUR_PRIV_KEY';
+  const auth_protocol = document.getElementById('auth_protocol').value;
+  const priv_protocol = document.getElementById('priv_protocol').value;
+  const deviceLabel   = (document.getElementById('device-label').value.trim() || DEVICES[devKey].label).toUpperCase();
+  const entityPrefix  = slugify(document.getElementById('entity-prefix').value.trim() || devKey);
+  const dev           = DEVICES[devKey];
+  const portCount     = dev.ports > 0 ? (parseInt(document.getElementById('port-count')?.value) || dev.ports) : 0;
+
+  availableGroups(devKey).forEach(gk => {
+    const el = document.getElementById(`interval_${gk}`);
+    if (el) groupIntervals[gk] = Math.max(1, parseInt(el.value) || 1);
+  });
+
+  const lines = [];
+  lines.push(`  # === ${deviceLabel} DEVICE SENSORS ===`);
+  lines.push('');
+
+  availableGroups(devKey).forEach(gk => {
+    const group = SENSOR_GROUPS[gk];
+    const interval = groupIntervals[gk];
+    const groupSensors = group.sensors.filter(s => selectedSensors.has(s.key));
+    if (!groupSensors.length) return;
+
+    lines.push(`  # --- ${group.label} (every ${interval}s) ---`);
+
+    groupSensors.forEach(s => {
+      const base = { platform: 'snmp', host, username, auth_protocol, auth_key, priv_protocol, priv_key, scan_interval: interval };
+
+      if (s.perPort && portCount > 0) {
+        for (let p = 1; p <= portCount; p++) {
+          const fields = { ...base,
+            name: `${deviceLabel} Port ${p} ${s.name}`,
+            unique_id: `${entityPrefix}_port_${p}_${s.key}`,
+            baseoid: `${s.oid_base}.${p}`,
+          };
+          if (s.unit) fields.unit_of_measurement = s.unit;
+          sensorLines(fields, s.template || null).forEach(l => lines.push(l));
+        }
+      } else if (!s.perPort) {
+        const fields = { ...base,
+          name: `${deviceLabel} ${s.name}`,
+          unique_id: `${entityPrefix}_${s.key}`,
+          baseoid: s.oid,
+        };
+        if (s.unit) fields.unit_of_measurement = s.unit;
+        sensorLines(fields, s.template || null).forEach(l => lines.push(l));
+      }
+    });
+
+    lines.push('');
+  });
+
+  document.getElementById('yaml-out').textContent = lines.join('\n');
+  document.getElementById('output-section').style.display = 'block';
+  document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyYaml() {
+  navigator.clipboard.writeText(document.getElementById('yaml-out').textContent).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy to clipboard', 1800);
+  });
+}
+</script>
